@@ -1,0 +1,225 @@
+%% ENGI 1331 - Project 2 Chemical Engineering Thermodynamics
+ 
+% Background
+%The laws of thermodynamics will be used to calculate the heat and work 
+% duties in a refrigeration cycle.
+ 
+% % Problem Statement
+% Create a program that, given validated user input information, finds the
+% work needed to power the compressor [kJ / kg] and the heat that can be
+% removed from the external system [kJ / kg].
+ 
+% Documentation
+% Assignment: Project 2 - Chemical Engineering
+% Group: 33 CHEE
+% Members: John Flores, Andrew Padilla, Mariana Villalobos
+% Professor: Dr. Matthew Zelikso
+% TA: Francisco Assef
+% Last Modified: 12/2/18
+
+%Variables Defined:
+%{
+ 
+Inputs: 
+ProjectData.xlsx : (saturated_data) and (cp_data)
+t1k (temperature of stream 1 [K]) 
+t2k (temperature of stream 2 [K]) 
+t3k (temperature of stream 3 [K])
+Qcomp (heat gained or lost by the compressor [kJ / kg])
+Qh_kw (heat lost at the condenser [kW])
+m (mass flow rate [kg / s])
+P3 (the pressure of stream 3 [kPa])
+T0 (the ambient temperature [K])
+Qcompnew (a new value for Qcomp [kJ / kg])
+compeff (compressor efficiency)
+
+Outputs:
+ 
+Work needed to power the compressor [kJ / Kg]
+The heat that can be removed from the external system [kJ / kg]
+Results.csv (column vector with the values for H1-H6)
+new Work needed to power the compressor [kJ / kg] based off of the updated specifications
+ 
+%}
+
+
+% Housekeeping commands
+ 
+clc;
+clear;
+close all;
+ 
+% Task 1 - Load and Validate Data
+ 
+saturated_data = xlsread('ProjectData.xlsx','Saturated');
+[r_sat, c_sat] = size(saturated_data);
+cp_data = xlsread('ProjectData.xlsx','cp Data');
+[r_cp,c_cp] = size(cp_data);
+ 
+state_var1 = ["Temperature [°C]","Pressure [kPa]","Liquid Specific Volume [m^3 / kg]","Vapor Specific Volume [m^3 / kg]"];
+state_var2 = ["Liquid Specific Enthalpy [kJ / kg]","Vapor Specific Enthalpy [kJ / kg]","Liquid Specific Entropy [kJ / kg*K]","Vapor Specific Entropy [kJ / kg*K]"];
+state_vars = [state_var1,state_var2];
+ 
+for i = 1:1:r_sat
+    for j = 2:1:c_sat
+        while saturated_data(i,j) < 0
+            saturated_data(i,j) = input(['Please replace the value for ',num2str(state_vars(1,j)),' at the temperature ',num2str(saturated_data(i,1)),': ']);
+        end
+    end
+end
+        
+ 
+% Task 2 - Receive and Validate User Inputs
+ 
+t1k = input('Enter the temperature of stream 1 [K]: ');
+counter_one = 3; 
+while t1k < 0 && counter_one > 1
+    counter_one = counter_one - 1;
+    warning('The temperature entered is not valid. You have %g more attempt(s) to enter a valid temperature', counter_one);
+    t1k = input('Enter the temperature of stream 1 [K]: ');
+     if counter_one == 1
+        warning('The absolute value of the third attempt will be used as the temperature for the first stream.');
+        t1k = abs(t1k);
+    end
+end
+ 
+t1c = t1k - 273;
+[t1_row, t1_col] = find(saturated_data == t1c);
+ 
+t2k = input('Enter the temperature of stream 2 [K]: ');
+counter_two = 3; 
+while t2k < 0 && counter_two > 1
+    counter_two = counter_two - 1;
+    warning('The temperature entered is not valid. You have %g more attempt(s) to enter a valid temperature', counter_two);
+    t2k = input('Enter the temperature of stream 2 [K]: ');
+     if counter_two == 1
+        warning('The absolute value of the third attempt will be used as the temperature for the second stream.');
+        t2k = abs(t2k);
+    end
+end
+ 
+t2c = t2k - 273.15;
+ 
+ 
+t3k = input('Enter the temperature of stream 3 [K]: ');
+counter_three = 3; 
+while t3k < 0 && counter_three > 1
+    counter_three = counter_three - 1;
+    warning('The temperature entered is not valid. You have %g more attempt(s) to enter a valid temperature', counter_three);
+    t3k = input('Enter the temperature of stream 3 [K]: ');
+     if counter_three == 1
+        warning('The absolute value of the third attempt will be used as the temperature for the third stream.');
+        t3k = abs(t3k);
+    end
+end
+ 
+t3c = t3k - 273;
+[t3_row, t3_col] = find(saturated_data == t3c);
+ 
+Qcomp = input('Enter the heat gained or lost by the compressor [kJ / kg]: ');
+Qh_kw = input('Enter the heat lost by the refrigeration system at the condenser [kW]: ');
+m = input('Enter the mass flow rate of the system [kg / s]: ');
+ 
+% Calculate the enthalpy values
+ 
+% Define each coefficient using cp_data
+A = cp_data(1);
+B = cp_data(2);
+C = cp_data(3);
+D = cp_data(4);
+E = cp_data(5);
+ 
+% Create a function handle for cp. The, integrate cp from t2k to t3k
+cp = @(t) (A) + (B.*t) + (C.*t.^2) + (D.*t.^3) + (E.*t.^-2); 
+hi = integral(cp,t2k,t3k);
+ 
+% Find the enthalpy values
+h1 = saturated_data(t1_row,6); 
+h3 = saturated_data(t3_row,6);
+h2 = h3 - hi;
+wcomp = (h3 - h2) - (Qcomp);
+
+ 
+Qh_kj_kg = Qh_kw / (m);
+h4 = Qh_kj_kg + h3 ;
+ 
+fprintf('\nFor the given specifications, the work needed to power the compressor is: %0.2f kJ / kg\n',wcomp);
+ 
+hxchange= h2-h1;
+ 
+h5= h4-hxchange;
+h6= h5;
+ 
+csvwrite('Results.csv',[h1,h2,h3,h4,h5,h6]')
+ 
+reee= h6-h1;
+ree= abs(reee);
+ 
+fprintf('For the given specifications, the heat that is removed from the external system is: %0.2f kJ / kg.',ree);
+ 
+% Task 9 - More Realistic Compressor Calculations
+ 
+data_validation = menu('Would you like to test alternative specifications?','Yes','No');
+ 
+if data_validation == 1
+    P3=input('\n\nEnter the pressure of Stream 3 [kPa]: ');
+    T0=input('Enter the ambient temperature [K]: ');
+    Q0=input('Enter the new heat gained or lost by the compressor [kJ / kg]: ');
+    compEff=input('Enter efficiency of the compressor (0,1]: ');
+end
+ 
+
+cutie=Q0/T0;
+%something like this but like, not this.
+%Cp2= @(t) A.*log(t)+(B.*t)+(C.*t.^2)./2+(D.*t.^3)./3-(E.*t.^-2);
+Cp2=  @(t) A./t + B + (C.*t) + (D.*t.^2) + (E.*t.^-3);
+Try=@(tk3)integral(Cp2,t2k,tk3)-cutie;
+tk3=fzero(Try,t3k);
+hi2 = integral(cp,t2k,tk3);
+h2n = tk3 - hi2;
+%wcomp2 = m*(h3 - h2n);
+wcomp = (tk3 - h2n) - (Q0);
+wurk=wcomp/compEff;
+
+fprintf('\ntk3 For the updated specifications, the work needed to power the compressor is %.2f .',wurk)
+
+%bonus 
+fprintf('\n***BONUS***')
+
+%fprintf('\n For the updated specifications, the heat that is removed from the external system is %.2f kJ / kg ', )
+
+
+Updated vars below
+
+heat_remov= h6-h1;
+heat_remov_abs= abs(heat_remov);
+ 
+fprintf('For the given specifications, the heat that is removed from the external system is: %0.2f kJ / kg.',heat_remov_abs);
+ 
+% Task 9 - More Realistic Compressor Calculations
+ 
+data_validation = menu('Would you like to test alternative specifications?','Yes','No');
+ 
+if data_validation == 1
+    P3=input('\n\nEnter the pressure of Stream 3 [kPa]: ');
+    T0=input('Enter the ambient temperature [K]: ');
+    Q0=input('Enter the new heat gained or lost by the compressor [kJ / kg]: ');
+    compEff=input('Enter efficiency of the compressor (0,1]: ');
+end
+ 
+ 
+cutie=Q0/T0;
+Cp2=  @(t) A./t + B + (C.*t) + (D.*t.^2) + (E.*t.^-3);
+Try=@(tk3)integral(Cp2,t2k,tk3)-cutie;
+tk3=fzero(Try,t3k);
+hi2 = integral(cp,t2k,tk3);
+h2n = tk3 - hi2;
+wcompnew = (tk3 - h2n) - (Q0);
+work = wcompnew/compEff;
+ 
+fprintf('\ntk3 For the updated specifications, the work needed to power the compressor is %.2f .',work);
+ 
+%bonus 
+fprintf('\n***BONUS***')
+ 
+%fprintf('\n For the updated specifications, the heat that is removed from the external system is %.2f kJ / kg ', )
