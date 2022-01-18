@@ -6,8 +6,15 @@ patient be more informed and better prepared to speak with a doctor about the co
 that they have.
 
 Test Case
-User inputs: Age, Drinks, Pain level, sex, pregnant(if applicable) Symptoms 
-Results: Dosage recommendation for patient given inputs and warning labels.
+User inputs: 
+Age, if over 21, user inputs amount they drink
+Sex, if female, ask for pregnancy status
+Symptom being experienced
+Level of pain being experienced
+ 
+he outputs will include :
+Opening warning about the proper use of the program
+Final result of amount of medication to take, medication name, dosage, and max amount per day.
 
 Conclusion and Limitations: 
 If used as part of the research people commonly do when they are about to 
